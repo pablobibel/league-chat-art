@@ -42,12 +42,14 @@ The terminal shows the generated art, row/message count, and estimated sending t
 
 1. Inspect the terminal preview.
 2. Switch to an actual League game, with **chat closed**. Enable all-chat when using the default channel and use the standard chat key bindings.
-3. Turn Caps Lock off and release Ctrl, Alt, Shift, and Windows keys, then press and release **F8** after the script is waiting. The game must be in the foreground; the League launcher/client does not qualify.
+3. Turn Caps Lock off, then press and release **F8** after the script is waiting. The game must be in the foreground; the League launcher/client does not qualify.
 4. Keep League focused through the two-second countdown and sending. The script opens and sends one chat message for each row, then exits.
 
 Press **Esc** to cancel. Detected focus loss also cancels the operation. There is no automatic resume, repeat, or retry. Script-held modifiers are released on exit.
 
 PyAutoGUI's mouse-corner fail-safe is disabled because League can confine or hide its cursor at a screen corner after opening chat, producing false cancellations. Esc and foreground-window verification remain active throughout the run.
+
+If Ctrl, Alt, Shift, or a Windows key is still reported as held after switching windows, the sender pauses until it is released. This prevents a brief Alt+Tab key state from cancelling the whole picture or changing the generated keystrokes.
 
 For all-chat, each row uses Shift+Enter to open chat, types the row, then uses Enter to submit. Team chat uses Enter to open and submit. The foreground process must be `League of Legends.exe` before sending and before each typing action. These checks are best effort: changing windows while sending should still be avoided.
 
@@ -98,7 +100,7 @@ Run the automated tests without launching League:
 
 Tests exercise image conversion and the sending sequence using a fake keyboard backend. They do not send messages to a live game or prove that the current League client accepts the input.
 
-**Local validation: PASS.** All 40 tests passed with Python 3.12.14, Pillow 12.3.0, and PyAutoGUI 0.9.54. The command-line help, preview/export with a spaced filename, dependency consistency check, and read-only Windows foreground/key-state adapter checks also passed. No keyboard input was sent to League during validation.
+**Local validation: PASS.** All 41 tests passed with Python 3.12.14, Pillow 12.3.0, and PyAutoGUI 0.9.54. The command-line help, preview/export with a spaced filename, dependency consistency check, and read-only Windows foreground/key-state adapter checks also passed. No keyboard input was sent to League during validation.
 
 **Private-game validation status: NOT RUN.** Current glyph rendering, wrapping, automated-input compatibility, and message timing/rate behavior are unverified. A user-operated private game is required for these checks:
 

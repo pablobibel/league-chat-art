@@ -162,14 +162,47 @@ class SenderTests(unittest.TestCase):
         self.assertFalse(backend.held)
         self.assertEqual(backend.events[-1], ("cleanup_up", "shift"))
 
-    def test_physical_modifiers_prevent_start(self):
+    def test_physical_modifiers_pause_until_released(self):
         for key in ("ctrl", "alt", "shift", "winleft", "winright"):
             with self.subTest(key=key):
                 backend = FakeKeyboard()
                 backend.physical.add(key)
-                with self.assertRaises(SendAborted):
-                    self.run_sender(backend)
-                self.assertEqual(backend.events, [])
+                original_sleep = backend.sleep
+
+                def release_after_delay(seconds, *, _key=key):
+                    original_sleep(seconds)
+                    if backend.now >= 0.25:
+                        backend.physical.discard(_key)
+
+                count = send_rows(["l"], SendOptions(channel="team", start_delay=0),
+                                  backend, clock=backend.clock, sleep=release_after_delay)
+                self.assertEqual(count, 1)
+                self.assertGreaterEqual(backend.now, 0.25)
+                self.assertEqual(backend.events,
+                                 [("press", "enter"), ("press", "l"), ("press", "enter")])
+
+    def test_modifier_mid_row_pauses_before_next_character(self):
+        backend = FakeKeyboard()
+        original_press = backend.press
+        original_sleep = backend.sleep
+
+        def press_and_hold_alt(key):
+            original_press(key)
+            if key == "l":
+                backend.physical.add("alt")
+
+        def release_alt(seconds):
+            original_sleep(seconds)
+            if backend.now >= 0.5:
+                backend.physical.discard("alt")
+
+        backend.press = press_and_hold_alt
+        count = send_rows(["l."], SendOptions(channel="team", start_delay=0, char_delay=0),
+                          backend, clock=backend.clock, sleep=release_alt)
+        self.assertEqual(count, 1)
+        self.assertGreaterEqual(backend.now, 0.5)
+        self.assertEqual(backend.events,
+                         [("press", "enter"), ("press", "l"), ("press", "."), ("press", "enter")])
 
     def test_zero_delays_still_check_cancellation(self):
         backend = FakeKeyboard()

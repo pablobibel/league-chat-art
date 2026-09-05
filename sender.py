@@ -62,11 +62,18 @@ def send_rows(rows, options, backend, *, clock=time.monotonic, sleep=time.sleep,
                 raise SendAborted("League lost focus or its window could not be verified.")
             if backend.caps_lock_on():
                 raise SendAborted("Turn Caps Lock off so l is typed in lowercase.")
+
+    def wait_for_modifiers():
+        # Alt may still be reported briefly after Alt+Tab. Pausing avoids both
+        # false cancellations and accidentally emitting modified shortcuts.
+        while True:
+            checkpoint()
             keys = ("ctrl", "alt", "winleft", "winright")
-            if any(backend.is_key_down(key) for key in keys):
-                raise SendAborted("Release Ctrl, Alt and Windows keys before sending.")
-            if not owned_shift and backend.is_key_down("shift"):
-                raise SendAborted("Release Shift before sending.")
+            active = any(backend.is_key_down(key) for key in keys)
+            active_shift = not owned_shift and backend.is_key_down("shift")
+            if not active and not active_shift:
+                return
+            sleep(0.01)
 
     def wait(seconds):
         deadline = clock() + seconds
@@ -79,6 +86,7 @@ def send_rows(rows, options, backend, *, clock=time.monotonic, sleep=time.sleep,
 
     def press(key):
         checkpoint()
+        wait_for_modifiers()
         backend.press(key)
 
     try:
@@ -99,6 +107,7 @@ def send_rows(rows, options, backend, *, clock=time.monotonic, sleep=time.sleep,
         while backend.is_key_down("f8"):
             wait(0.01)
         checkpoint()
+        wait_for_modifiers()
         if on_start is not None:
             on_start()
         wait(options.start_delay)
@@ -106,6 +115,7 @@ def send_rows(rows, options, backend, *, clock=time.monotonic, sleep=time.sleep,
         for row_index, row in enumerate(rows):
             if options.channel == "all":
                 checkpoint()
+                wait_for_modifiers()
                 backend.key_down("shift")
                 owned_shift = True
                 press("enter")
