@@ -19,8 +19,8 @@ def parser():
     result.add_argument("--invert", action="store_true", help="swap l and .")
     result.add_argument("--channel", choices=("all", "team"), default="all")
     result.add_argument("--start-delay", type=float, default=2, help="seconds after F8 release (default: 2)")
-    result.add_argument("--char-delay", type=float, default=0.01, help="seconds between characters (default: 0.01)")
-    result.add_argument("--line-delay", type=float, default=1.5, help="seconds between messages (default: 1.5)")
+    result.add_argument("--char-delay", type=float, default=0.003, help="seconds between characters (default: 0.003)")
+    result.add_argument("--line-delay", type=float, default=0.4, help="seconds between messages (default: 0.4)")
     result.add_argument("--preview-only", action="store_true", help="print art and exit without keyboard access")
     result.add_argument("--output", type=Path, help="export art to a new text file; existing files are preserved")
     return result
@@ -55,7 +55,7 @@ def main(argv=None):
     try:
         backend = WindowsKeyboard()
         print("\nClose League chat, turn Caps Lock off, switch to the match, then press and release F8.")
-        print("The sender waits while Ctrl, Alt, Shift or a Windows key is held.")
+        print("Each row is typed and submitted using the reference project's input sequence.")
         print("Esc cancels. Focus loss cancels without resuming.", flush=True)
         attempted = send_rows(rows, sending, backend, on_start=lambda: print(
             f"Starting in {sending.start_delay:g}s...", flush=True))

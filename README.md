@@ -15,9 +15,9 @@ py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-Pillow handles images. PyAutoGUI supplies keyboard input. Windows APIs identify the foreground process and detect F8/Esc; the script does not read game memory or inject code into League.
+Pillow handles images. The `keyboard` package opens chat, and PyAutoGUI types and submits each row, matching the input sequence used by the reference project. Windows APIs identify the foreground process and detect F8/Esc; the script does not read game memory or inject code into League.
 
-Activate your own GitHub access before cloning this private repository. The virtual environment and local image/output files are not included in the repository.
+The virtual environment and local image/output files are not included in the repository.
 
 ## Preview and export first
 
@@ -32,6 +32,8 @@ The terminal shows the generated art, row/message count, and estimated sending t
 
 ## Send one picture
 
+On Pablo's Windows setup, double-click `League Chat Art.cmd` to use `Downloads\kawaiilogo.png` in all-chat. To use another picture, drag its PNG, JPEG, WebP, or BMP file onto the launcher. The launcher handles the Python command; switch to the match and press F8 when prompted.
+
 ```powershell
 # All-chat (default)
 .\.venv\Scripts\python.exe .\league_art.py 'C:\Pictures\funny face.png'
@@ -45,13 +47,11 @@ The terminal shows the generated art, row/message count, and estimated sending t
 3. Turn Caps Lock off, then press and release **F8** after the script is waiting. The game must be in the foreground; the League launcher/client does not qualify.
 4. Keep League focused through the two-second countdown and sending. The script opens and sends one chat message for each row, then exits.
 
-Press **Esc** to cancel. Focus loss longer than half a second also cancels the operation. Brief League window transitions pause sending without typing until the same match process is foreground again. There is no automatic resume after cancellation, repeat, or retry. Script-held modifiers are released on exit.
+Press **Esc** to cancel during the countdown or between input actions. A failed foreground-process check cancels the operation. There is no automatic resume after cancellation, repeat, or retry.
 
-PyAutoGUI's mouse-corner fail-safe is disabled because League can confine or hide its cursor at a screen corner after opening chat, producing false cancellations. Esc and foreground-window verification remain active throughout the run.
+The input library's mouse-corner fail-safe is disabled because League can confine or hide its cursor at a screen corner after opening chat, producing false cancellations. Esc and foreground-window verification remain active throughout the run.
 
-If Ctrl, Alt, Shift, or a Windows key is still reported as held after switching windows, the sender pauses until it is released. This prevents a brief Alt+Tab key state from cancelling the whole picture or changing the generated keystrokes.
-
-For all-chat, each row uses Shift+Enter to open chat, types the row, then uses Enter to submit. Team chat uses Enter to open and submit. The foreground process must be `League of Legends.exe` before sending and before each typing action. These checks are best effort: changing windows while sending should still be avoided.
+For all-chat, the `keyboard` package sends Shift+Enter to open chat. Team chat uses Enter. PyAutoGUI then types the complete row and submits a newline, which is the same library combination and sequence used by the reference project. The foreground process must remain the same `League of Legends.exe` process at each checkpoint. Avoid changing windows while it sends.
 
 The script cannot determine whether chat is actually open, whether a message arrived, or whether League rejected input. Results count **attempted rows**, not confirmed deliveries. Cancelling may leave a partial chat draft; inspect and clear it yourself. Messages already submitted cannot be recalled.
 
@@ -83,8 +83,8 @@ EXIF orientation is applied, transparent pixels are composited onto white, and i
 | `--invert` | Off | Swap `l` and `.`. |
 | `--channel` | `all` | `all` or `team`. |
 | `--start-delay` | `2` | Countdown seconds after F8. |
-| `--char-delay` | `0.01` | Delay in seconds between characters. |
-| `--line-delay` | `1.5` | Delay in seconds between messages. |
+| `--char-delay` | `0.003` | Delay in seconds between characters. |
+| `--line-delay` | `0.4` | Delay in seconds between messages. |
 | `--preview-only` | Off | Preview and exit without keyboard input. |
 | `--output` | None | Save generated text to the specified file. |
 
@@ -100,14 +100,14 @@ Run the automated tests without launching League:
 
 Tests exercise image conversion and the sending sequence using a fake keyboard backend. They do not send messages to a live game or prove that the current League client accepts the input.
 
-**Local validation: PASS.** All 42 tests passed with Python 3.12.14, Pillow 12.3.0, and PyAutoGUI 0.9.54. The command-line help, preview/export with a spaced filename, dependency consistency check, and read-only Windows foreground/key-state adapter checks also passed. No keyboard input was sent to League during validation.
+**Local validation:** automated tests cover conversion, row ordering, channel selection, cancellation, focus checks, and the Windows adapter. A live private-game test is still required to confirm that League accepts this input sequence.
 
-**Private-game validation status: NOT RUN.** Current glyph rendering, wrapping, automated-input compatibility, and message timing/rate behavior are unverified. A user-operated private game is required for these checks:
+**Private-game validation status:** Team-chat sending passed a user-operated game check on September 4, 2026. The final `keyboard` + PyAutoGUI sequence opened chat, typed and submitted three rows in order. The earlier clipboard/DirectInput implementation failed and has been removed. All-chat selection and a complete 12-row picture still need separate confirmation.
 
-- [ ] Preview a small, recognizable image and confirm the characters look right in-game.
+- [x] Preview a small image and confirm its characters appear in-game.
 - [ ] Check every row for wrapping or truncation; reduce width if necessary.
 - [ ] Confirm all-chat and team chat each reach the intended channel.
-- [ ] Check that rows remain in order and the selected timing is accepted.
+- [x] Check that a three-row sample remains in order and the selected timing is accepted.
 - [ ] Cancel during the countdown and during a row; check for a partial draft.
 - [ ] Change focus during a small test and confirm sending stops without resuming.
 - [ ] Confirm one F8 trigger sends one picture and the process exits afterward.
