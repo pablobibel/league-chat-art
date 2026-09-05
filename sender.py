@@ -58,8 +58,16 @@ def send_rows(rows, options, backend, *, clock=time.monotonic, sleep=time.sleep,
         if backend.is_key_down("esc"):
             raise SendAborted("Esc pressed.")
         if target is not None:
-            if backend.foreground_target() != target:
-                raise SendAborted("League lost focus or its window could not be verified.")
+            # League can briefly replace its foreground window or yield focus
+            # during an Alt+Tab transition. Never type during that interval,
+            # but allow the same League process a short time to regain focus.
+            focus_deadline = clock() + 0.5
+            while backend.foreground_target() != target:
+                if backend.is_key_down("esc"):
+                    raise SendAborted("Esc pressed.")
+                if clock() >= focus_deadline:
+                    raise SendAborted("League lost focus or its process could not be verified.")
+                sleep(0.01)
             if backend.caps_lock_on():
                 raise SendAborted("Turn Caps Lock off so l is typed in lowercase.")
 
@@ -217,7 +225,9 @@ class WindowsKeyboard:
                 return None
             if ntpath.basename(path.value).casefold() != "league of legends.exe":
                 return None
-            return hwnd
+            # Track the process rather than its HWND. League may replace the
+            # foreground window while the match process itself stays active.
+            return pid.value
         finally:
             self.kernel32.CloseHandle(handle)
 

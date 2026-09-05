@@ -147,7 +147,27 @@ class SenderTests(unittest.TestCase):
             self.run_sender(backend, start_delay=0, channel="team", char_delay=0)
         self.assertEqual(backend.events, [("press", "enter"), ("press", "l")])
 
-    def test_second_game_window_is_not_the_original_target(self):
+    def test_transient_focus_loss_pauses_without_typing_then_resumes(self):
+        backend = FakeKeyboard()
+        lost_at = [None]
+
+        def target():
+            if ("press", "l") not in backend.events:
+                return 100
+            if lost_at[0] is None:
+                lost_at[0] = backend.now
+            return None if backend.now - lost_at[0] < 0.2 else 100
+
+        backend.target = target
+        count = self.run_sender(backend, ["l."], start_delay=0,
+                                channel="team", char_delay=0)
+        self.assertEqual(count, 1)
+        self.assertGreaterEqual(backend.now - lost_at[0], 0.2)
+        self.assertEqual(backend.events,
+                         [("press", "enter"), ("press", "l"),
+                          ("press", "."), ("press", "enter")])
+
+    def test_second_game_process_is_not_the_original_target(self):
         backend = FakeKeyboard()
         backend.target = lambda: 200 if backend.events else 100
         with self.assertRaisesRegex(SendAborted, "focus"):

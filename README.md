@@ -45,7 +45,7 @@ The terminal shows the generated art, row/message count, and estimated sending t
 3. Turn Caps Lock off, then press and release **F8** after the script is waiting. The game must be in the foreground; the League launcher/client does not qualify.
 4. Keep League focused through the two-second countdown and sending. The script opens and sends one chat message for each row, then exits.
 
-Press **Esc** to cancel. Detected focus loss also cancels the operation. There is no automatic resume, repeat, or retry. Script-held modifiers are released on exit.
+Press **Esc** to cancel. Focus loss longer than half a second also cancels the operation. Brief League window transitions pause sending without typing until the same match process is foreground again. There is no automatic resume after cancellation, repeat, or retry. Script-held modifiers are released on exit.
 
 PyAutoGUI's mouse-corner fail-safe is disabled because League can confine or hide its cursor at a screen corner after opening chat, producing false cancellations. Esc and foreground-window verification remain active throughout the run.
 
@@ -100,7 +100,7 @@ Run the automated tests without launching League:
 
 Tests exercise image conversion and the sending sequence using a fake keyboard backend. They do not send messages to a live game or prove that the current League client accepts the input.
 
-**Local validation: PASS.** All 41 tests passed with Python 3.12.14, Pillow 12.3.0, and PyAutoGUI 0.9.54. The command-line help, preview/export with a spaced filename, dependency consistency check, and read-only Windows foreground/key-state adapter checks also passed. No keyboard input was sent to League during validation.
+**Local validation: PASS.** All 42 tests passed with Python 3.12.14, Pillow 12.3.0, and PyAutoGUI 0.9.54. The command-line help, preview/export with a spaced filename, dependency consistency check, and read-only Windows foreground/key-state adapter checks also passed. No keyboard input was sent to League during validation.
 
 **Private-game validation status: NOT RUN.** Current glyph rendering, wrapping, automated-input compatibility, and message timing/rate behavior are unverified. A user-operated private game is required for these checks:
 
