@@ -43,8 +43,8 @@ def send_rows(rows, options, backend, *, clock=time.monotonic, sleep=time.sleep,
               on_start=None):
     """Wait for a fresh F8, send one image, return attempted row submissions.
 
-    The backend supplies key state, foreground identity, failsafe, press,
-    key_down/key_up, and release_held methods. Tests replace all OS input.
+    The backend supplies key state, foreground identity, press, key_down/key_up,
+    and release_held methods. Tests replace all OS input.
     Focus is checked immediately before each action, but OS focus changes and
     input injection cannot be made atomic; this is a best-effort guard.
     """
@@ -57,7 +57,6 @@ def send_rows(rows, options, backend, *, clock=time.monotonic, sleep=time.sleep,
     def checkpoint():
         if backend.is_key_down("esc"):
             raise SendAborted("Esc pressed.")
-        backend.check_failsafe()
         if target is not None:
             if backend.foreground_target() != target:
                 raise SendAborted("League lost focus or its window could not be verified.")
@@ -161,7 +160,10 @@ class WindowsKeyboard:
         self.wintypes = wintypes
         self.gui = pyautogui
         self.gui.PAUSE = 0  # Explicit cancellable waits control timing.
-        self.gui.FAILSAFE = True
+        # League may confine or hide its cursor at a screen corner, which makes
+        # PyAutoGUI's mouse-corner fail-safe stop valid chat input. Esc and the
+        # foreground-window guard remain available as emergency stops.
+        self.gui.FAILSAFE = False
         self.held = set()
         self.user32 = ctypes.WinDLL("user32", use_last_error=True)
         self.kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
@@ -209,9 +211,6 @@ class WindowsKeyboard:
         finally:
             self.kernel32.CloseHandle(handle)
 
-    def check_failsafe(self):
-        self.gui.failSafeCheck()
-
     def press(self, key):
         self.gui.press(key)
 
@@ -224,12 +223,6 @@ class WindowsKeyboard:
         self.held.discard(key)
 
     def release_held(self):
-        # Even a corner-triggered abort must release modifiers we pressed.
-        previous = self.gui.FAILSAFE
-        self.gui.FAILSAFE = False
-        try:
-            for key in list(self.held):
-                self.gui.keyUp(key)
-                self.held.discard(key)
-        finally:
-            self.gui.FAILSAFE = previous
+        for key in list(self.held):
+            self.gui.keyUp(key)
+            self.held.discard(key)

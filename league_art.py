@@ -55,7 +55,7 @@ def main(argv=None):
     try:
         backend = WindowsKeyboard()
         print("\nClose League chat, turn Caps Lock off, release modifiers, switch to the match, then press and release F8.")
-        print("Esc or a primary-screen mouse corner cancels. Focus loss cancels without resuming.", flush=True)
+        print("Esc cancels. Focus loss cancels without resuming.", flush=True)
         attempted = send_rows(rows, sending, backend, on_start=lambda: print(
             f"Starting in {sending.start_delay:g}s...", flush=True))
         print(f"Finished: {attempted} row submissions attempted. In-game delivery is not verified.")

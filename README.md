@@ -45,7 +45,9 @@ The terminal shows the generated art, row/message count, and estimated sending t
 3. Turn Caps Lock off and release Ctrl, Alt, Shift, and Windows keys, then press and release **F8** after the script is waiting. The game must be in the foreground; the League launcher/client does not qualify.
 4. Keep League focused through the two-second countdown and sending. The script opens and sends one chat message for each row, then exits.
 
-Press **Esc** to cancel, or move the mouse to a PyAutoGUI fail-safe corner of the primary screen. Detected focus loss also cancels the operation. There is no automatic resume, repeat, or retry. Script-held modifiers are released on exit.
+Press **Esc** to cancel. Detected focus loss also cancels the operation. There is no automatic resume, repeat, or retry. Script-held modifiers are released on exit.
+
+PyAutoGUI's mouse-corner fail-safe is disabled because League can confine or hide its cursor at a screen corner after opening chat, producing false cancellations. Esc and foreground-window verification remain active throughout the run.
 
 For all-chat, each row uses Shift+Enter to open chat, types the row, then uses Enter to submit. Team chat uses Enter to open and submit. The foreground process must be `League of Legends.exe` before sending and before each typing action. These checks are best effort: changing windows while sending should still be avoided.
 

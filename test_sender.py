@@ -1,6 +1,7 @@
 """Keyboard tests use only in-memory events and a virtual clock."""
 
 import unittest
+import sys
 
 from sender import SendAborted, SendOptions, WindowsKeyboard, estimated_seconds, send_rows
 
@@ -14,7 +15,6 @@ class FakeKeyboard:
         self.f8 = lambda: 0.02 <= self.now < 0.04
         self.esc = lambda: False
         self.target = lambda: 100
-        self.corner = lambda: False
         self.physical = set()
         self.caps = lambda: False
         self.fail_action = None
@@ -39,10 +39,6 @@ class FakeKeyboard:
 
     def caps_lock_on(self):
         return self.caps()
-
-    def check_failsafe(self):
-        if self.corner():
-            raise RuntimeError("Mouse corner fail-safe")
 
     def record(self, action, key):
         self.events.append((action, key))
@@ -158,13 +154,6 @@ class SenderTests(unittest.TestCase):
             self.run_sender(backend, start_delay=0)
         self.assertEqual(backend.events, [("down", "shift"), ("cleanup_up", "shift")])
 
-    def test_corner_failure_is_converted_to_abort(self):
-        backend = FakeKeyboard()
-        backend.corner = lambda: ("press", "l") in backend.events
-        with self.assertRaisesRegex(SendAborted, "corner"):
-            self.run_sender(backend, start_delay=0, channel="team")
-        self.assertEqual(backend.events, [("press", "enter"), ("press", "l")])
-
     def test_backend_error_releases_shift(self):
         backend = FakeKeyboard()
         backend.fail_action = ("press", "enter")
@@ -235,16 +224,12 @@ class SenderTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             SendOptions(channel="party")
 
-    def test_windows_cleanup_bypasses_corner_only_for_held_key_release(self):
+    def test_windows_cleanup_releases_held_key(self):
         class Gui:
-            FAILSAFE = True
-
             def __init__(self):
                 self.released = []
 
             def keyUp(self, key):
-                if self.FAILSAFE:
-                    raise AssertionError("Corner would prevent cleanup")
                 self.released.append(key)
 
         backend = WindowsKeyboard.__new__(WindowsKeyboard)
@@ -252,8 +237,12 @@ class SenderTests(unittest.TestCase):
         backend.held = {"shift"}
         backend.release_held()
         self.assertEqual(backend.gui.released, ["shift"])
-        self.assertTrue(backend.gui.FAILSAFE)
         self.assertFalse(backend.held)
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows adapter")
+    def test_windows_adapter_disables_mouse_corner_failsafe(self):
+        backend = WindowsKeyboard()
+        self.assertFalse(backend.gui.FAILSAFE)
 
 
 if __name__ == "__main__":
